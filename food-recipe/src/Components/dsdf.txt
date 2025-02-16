@@ -1,0 +1,80 @@
+import { createSlice } from "@reduxjs/toolkit";
+
+const catagoryRecipeSlice = createSlice({
+  name: "catagoryRecipe",
+  initialState: {
+    recipes: [],
+    error: null,
+    loading: false,
+  },
+  reducers: {
+    setLoading: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setError: (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
+    addCatagoryRecipe: (state, action) => {
+      state.loading = false;
+      state.recipes = action.payload.meals;
+    },
+  },
+});
+
+export const catagoryRecipeSliceAction = catagoryRecipeSlice.actions;
+export default catagoryRecipeSlice;
+
+
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import CatagoryRecipeList from "./CatagoryRecipeList";
+import { catagoryRecipeSliceAction } from "../store/catagoryRecipeSlice";
+
+const Home = () => {
+  const dispatch = useDispatch();
+  const myCat = useSelector((store) => store.catagory);
+  const { recipes, error, loading } = useSelector(
+    (store) => store.catagoryRecipe
+  );
+
+  useEffect(() => {
+    if (myCat) {
+      dispatch(catagoryRecipeSliceAction.setLoading());
+      fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?c=${myCat}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.meals) {
+            dispatch(catagoryRecipeSliceAction.addCatagoryRecipe(data));
+          } else {
+            dispatch(
+              catagoryRecipeSliceAction.setError(
+                "No meals found in the response."
+              )
+            );
+          }
+        })
+        .catch((error) => {
+          dispatch(
+            catagoryRecipeSliceAction.setError(
+              "Error fetching data: " + error.message
+            )
+          );
+        });
+    }
+  }, [myCat]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div className="newContainer">
+      {recipes.map((item) => (
+        <CatagoryRecipeList key={item.idMeal} item={item} />
+      ))}
+    </div>
+  );
+};
+
+export default Home;
